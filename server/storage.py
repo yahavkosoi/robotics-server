@@ -50,7 +50,7 @@ def atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
     with NamedTemporaryFile("w", delete=False, encoding="utf-8", dir=path.parent) as tmp:
         json.dump(payload, tmp, ensure_ascii=False, indent=2)
         tmp.flush()
-        Path(tmp.name).replace(path)
+    Path(tmp.name).replace(path)
 
 
 @dataclass
