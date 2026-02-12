@@ -28,7 +28,7 @@ pip install -r requirements.txt
 export ROBOTICS_DEFAULT_ADMIN_PASSWORD='change-this-before-first-run'
 python -m server.run
 ```
-Backend runs on `http://0.0.0.0:8000`.
+Backend runs on `http://0.0.0.0:8080`.
 
 ## Run Frontend
 ```bash
