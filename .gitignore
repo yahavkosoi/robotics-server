@@ -1,0 +1,18 @@
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+
+# local env/secrets
+.env
+.env.*
+!.env.example
+
+# runtime app data (contains personal/session content)
+data/*.json
+data/files/*
+!data/files/.gitkeep
+data/migration_reports/*
+!data/migration_reports/.gitkeep
+web/node_modules/
+web/dist/
