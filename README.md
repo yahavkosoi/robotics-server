@@ -30,13 +30,9 @@ python -m server.run
 ```
 Backend runs on `http://0.0.0.0:8080`.
 
-## Run Frontend
-```bash
-cd robotics-server/web
-npm install
-npm run dev
-```
-Frontend runs on `http://0.0.0.0:5173` and proxies `/api` to backend.
+## Frontend Runtime Note
+Do not run the frontend dev server (`npm run dev`) for normal usage.
+Only run the Python backend server with `python -m server.run`.
 
 ## Runtime Data
 The app manages runtime JSON/files under `data/`:
