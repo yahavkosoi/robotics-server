@@ -123,13 +123,13 @@ function Stop-AllServices {
 function Start-BackendProcess {
   param([int]$BackendPort)
 
-  $backendCmd = "cd /d ""$script:RootDir"" && call ""venv\Scripts\activate.bat"" && python -m server.run >> ""$script:BackendLogPath"" 2>>&1"
+  $backendCmd = "cd /d ""$script:RootDir"" && call ""venv\Scripts\activate.bat"" && python -m server.run >> ""$script:BackendLogPath"" 2>&1"
   return Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $backendCmd -WindowStyle Hidden -PassThru
 }
 
 function Start-WebProcess {
   $installStep = 'if not exist "node_modules" (npm install)'
-  $webCmd = "cd /d ""$script:WebDir"" && $installStep && npm run dev >> ""$script:WebLogPath"" 2>>&1"
+  $webCmd = "cd /d ""$script:WebDir"" && $installStep && npm run dev >> ""$script:WebLogPath"" 2>&1"
   return Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $webCmd -WindowStyle Hidden -PassThru
 }
 
@@ -147,6 +147,30 @@ function Wait-BackendHealthy {
 
     try {
       Invoke-WebRequest -UseBasicParsing -Uri $HealthUrl -TimeoutSec 3 | Out-Null
+      return $true
+    } catch {
+      Start-Sleep -Seconds 1
+    }
+  }
+
+  return $false
+}
+
+function Wait-WebReady {
+  param(
+    [int]$WebPort,
+    [int]$TimeoutSeconds,
+    [System.Diagnostics.Process]$WebProc
+  )
+
+  $webUrl = "http://127.0.0.1:$WebPort/"
+  for ($i = 0; $i -lt $TimeoutSeconds; $i++) {
+    if ($WebProc -and $WebProc.HasExited) {
+      return $false
+    }
+
+    try {
+      Invoke-WebRequest -UseBasicParsing -Uri $webUrl -TimeoutSec 3 | Out-Null
       return $true
     } catch {
       Start-Sleep -Seconds 1
@@ -181,6 +205,10 @@ function Start-AllServices {
         }
 
         $script:WebProcess = Start-WebProcess
+        if (-not (Wait-WebReady -WebPort $ports.web_port -TimeoutSeconds $MaxWaitSeconds -WebProc $script:WebProcess)) {
+          throw "Web did not become reachable on port $($ports.web_port)"
+        }
+
         Set-TrayStatusText -Text "Robotics Server (Running)"
         Show-TrayBalloon -Title 'Robotics Server' -Text 'Backend and web are running.' -Icon Info
         $started = $true
@@ -248,4 +276,3 @@ try {
     $script:Mutex.Dispose()
   }
 }
-
