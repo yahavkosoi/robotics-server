@@ -2,6 +2,7 @@
 setlocal
 
 set "ROOT_DIR=%~dp0"
-powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%ROOT_DIR%scripts\robotics-tray.ps1" -RootDir "%ROOT_DIR%"
+if "%ROOT_DIR:~-1%"=="\" set "ROOT_DIR=%ROOT_DIR:~0,-1%"
+powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "%ROOT_DIR%\scripts\robotics-tray.ps1" -RootDir "%ROOT_DIR%"
 
 exit /b 0

@@ -12,6 +12,11 @@ if (-not $RootDir) {
   $RootDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 }
 
+$RootDir = $RootDir.Trim('"').Trim()
+if ($RootDir.EndsWith('\') -or $RootDir.EndsWith('/')) {
+  $RootDir = $RootDir.TrimEnd('\', '/')
+}
+
 $script:RootDir = $RootDir
 $script:WebDir = Join-Path $script:RootDir 'web'
 $script:SettingsPath = Join-Path $script:RootDir 'data\settings.json'
