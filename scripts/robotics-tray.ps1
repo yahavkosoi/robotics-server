@@ -23,8 +23,15 @@ $script:SettingsPath = Join-Path $script:RootDir 'data\settings.json'
 $script:LogsDir = Join-Path $script:RootDir 'data\logs'
 $script:BackendLogPath = Join-Path $script:LogsDir 'backend.log'
 $script:WebLogPath = Join-Path $script:LogsDir 'web.log'
+$script:TrayLogPath = Join-Path $script:LogsDir 'tray.log'
 
 New-Item -ItemType Directory -Path $script:LogsDir -Force | Out-Null
+
+function Write-TrayLog {
+  param([string]$Message)
+  $line = "[{0}] {1}" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss"), $Message
+  Add-Content -LiteralPath $script:TrayLogPath -Value $line -Encoding UTF8
+}
 
 $createdNew = $false
 $script:Mutex = New-Object System.Threading.Mutex($true, 'Global\RoboticsServerTray', [ref]$createdNew)
@@ -37,6 +44,7 @@ $script:BackendProcess = $null
 $script:WebProcess = $null
 $script:IsBusy = $false
 $script:NotifyIcon = $null
+$script:NpmCmdPath = $null
 
 function Get-PortConfig {
   $defaultBackend = 8080
@@ -133,13 +141,33 @@ function Start-BackendProcess {
   param([int]$BackendPort)
 
   $backendCmd = "cd /d ""$script:RootDir"" && call ""venv\Scripts\activate.bat"" && python -m server.run >> ""$script:BackendLogPath"" 2>&1"
+  Write-TrayLog "Starting backend command: $backendCmd"
   return Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $backendCmd -WindowStyle Hidden -PassThru
 }
 
 function Start-WebProcess {
-  $installStep = 'if not exist "node_modules" (npm install)'
-  $webCmd = "(cd /d ""$script:WebDir"" && $installStep && npm run dev) >> ""$script:WebLogPath"" 2>&1"
-  return Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $webCmd -WindowStyle Hidden -PassThru
+  if (-not $script:NpmCmdPath) {
+    throw "npm.cmd path is not resolved"
+  }
+
+  Add-Content -LiteralPath $script:WebLogPath -Value ("`n----- {0} Starting web launcher -----" -f (Get-Date -Format "yyyy-MM-dd HH:mm:ss")) -Encoding UTF8
+  Add-Content -LiteralPath $script:WebLogPath -Value ("Using npm: {0}" -f $script:NpmCmdPath) -Encoding UTF8
+
+  if (-not (Test-Path -LiteralPath (Join-Path $script:WebDir 'node_modules'))) {
+    $installCmd = "call ""$script:NpmCmdPath"" install >> ""$script:WebLogPath"" 2>&1"
+    Write-TrayLog "Starting web install command: $installCmd"
+    $installProc = Start-Process -FilePath 'cmd.exe' -WorkingDirectory $script:WebDir -ArgumentList '/c', $installCmd -WindowStyle Hidden -PassThru -Wait
+    if ($installProc.ExitCode -ne 0) {
+      $installTail = Get-LogTail -Path $script:WebLogPath -Lines 20
+      throw "npm install failed with code $($installProc.ExitCode).`n$installTail"
+    }
+  } else {
+    Write-TrayLog "Skipping npm install because node_modules exists."
+  }
+
+  $runCmd = "call ""$script:NpmCmdPath"" run dev >> ""$script:WebLogPath"" 2>&1"
+  Write-TrayLog "Starting web run command: $runCmd"
+  return Start-Process -FilePath 'cmd.exe' -WorkingDirectory $script:WebDir -ArgumentList '/c', $runCmd -WindowStyle Hidden -PassThru
 }
 
 function Wait-BackendHealthy {
@@ -221,6 +249,15 @@ function Start-AllServices {
 
     $ports = Get-PortConfig
     $healthUrl = "http://127.0.0.1:$($ports.backend_port)/api/health"
+    Write-TrayLog "Startup requested. RootDir=$script:RootDir BackendPort=$($ports.backend_port) WebPort=$($ports.web_port)"
+
+    try {
+      $script:NpmCmdPath = (Get-Command npm.cmd -ErrorAction Stop).Source
+      Write-TrayLog "Resolved npm.cmd: $script:NpmCmdPath"
+    } catch {
+      $script:NpmCmdPath = $null
+      throw "npm.cmd was not found in PATH for this session."
+    }
 
     Set-TrayStatusText -Text "Robotics Server (Starting)"
     Show-TrayBalloon -Title 'Robotics Server' -Text "Starting backend on port $($ports.backend_port), then web on port $($ports.web_port)." -Icon Info
@@ -250,6 +287,7 @@ function Start-AllServices {
         break
       } catch {
         $errText = $_.Exception.Message
+        Write-TrayLog "Startup attempt $attempt failed: $errText"
         Stop-AllServices
         if ($attempt -lt 2) {
           Start-Sleep -Seconds 2
