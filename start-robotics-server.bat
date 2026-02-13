@@ -4,9 +4,9 @@ setlocal
 rem ===== Config =====
 set "ROOT_DIR=S:\robotics-serverV2"
 set "WEB_DIR=%ROOT_DIR%\web"
-set "BACKEND_PORT=8080"
+set "BACKEND_PORT=5173"
 set "HEALTH_URL=http://127.0.0.1:%BACKEND_PORT%/api/health"
-set "MAX_WAIT_SECONDS=90"
+set "MAX_WAIT_SECONDS=60"
 
 echo [1/3] Starting backend...
 start "Robotics Backend" cmd /k "cd /d %ROOT_DIR% && call venv\Scripts\activate.bat && python -m server.run"
