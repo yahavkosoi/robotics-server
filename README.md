@@ -72,3 +72,14 @@ POST /api/admin/migrate/import-legacy
   `fn1, fn2 [v1, v2] {AdminName - Uploader1, Uploader2} (dd-mm-yyyy)`
   where `fn*` are derived from file descriptions without file extensions.
 - Backend/web ports are configurable in Admin Settings and are applied on next backend/Vite start.
+
+## Windows Background Startup (Tray)
+- `start-robotics-tray.bat` launches a hidden PowerShell tray controller.
+- Tray menu includes:
+  - `Restart` (restarts backend and web)
+  - `Quit` (stops both and exits tray app)
+- Startup order is backend first, then web after backend health check succeeds.
+- Logs are written to:
+  - `data/logs/backend.log`
+  - `data/logs/web.log`
+- Use `start-robotics-server.bat` when you want visible terminal windows for debugging.
