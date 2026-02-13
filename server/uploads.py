@@ -150,6 +150,29 @@ def _safe_storage_name(filename: str) -> str:
     return f"{uuid4().hex}_{cleaned}"
 
 
+def _effective_filename(file_entry: dict[str, Any]) -> str:
+    description = str(file_entry.get("description") or "").strip()
+    original_filename = str(file_entry.get("original_filename") or "").strip()
+    original_ext = Path(original_filename).suffix
+
+    if description:
+        if original_ext and description.lower().endswith(original_ext.lower()):
+            return description
+        if original_ext:
+            return f"{description}{original_ext}"
+        return description
+
+    return original_filename or "download"
+
+
+def _copy_filename_token(file_entry: dict[str, Any]) -> str:
+    effective = _effective_filename(file_entry).strip()
+    if not effective:
+        return "download"
+    stem = Path(effective).stem
+    return stem or effective
+
+
 def _build_admin_upload_view(store: DataStore) -> list[dict[str, Any]]:
     uploads_payload = store.read_uploads()
     files = uploads_payload.get("files", [])
@@ -171,7 +194,7 @@ def _build_admin_upload_view(store: DataStore) -> list[dict[str, Any]]:
             rendered_files.append(
                 {
                     "id": file_entry.get("id"),
-                    "original_filename": file_entry.get("original_filename"),
+                    "original_filename": _effective_filename(file_entry),
                     "description": file_entry.get("description"),
                     "version": file_entry.get("version"),
                     "created_at": file_entry.get("created_at"),
@@ -323,7 +346,7 @@ async def admin_download_file(file_id: str, request: Request, _: dict[str, Any] 
     path = store.files_dir / file_entry.get("stored_filename", "")
     if not path.exists():
         raise HTTPException(status_code=404, detail="File is no longer available")
-    return FileResponse(path=path, filename=file_entry.get("original_filename") or "download")
+    return FileResponse(path=path, filename=_effective_filename(file_entry))
 
 
 @router.post("/admin/files/download-many")
@@ -349,7 +372,7 @@ async def admin_download_many(
         downloads.append(
             {
                 "file_id": file_entry.get("id"),
-                "filename": file_entry.get("original_filename"),
+                "filename": _effective_filename(file_entry),
                 "url": f"/api/admin/files/{file_entry.get('id')}/download",
             }
         )
@@ -427,7 +450,7 @@ async def admin_copy_string(
     if not selected_files:
         raise HTTPException(status_code=404, detail="No available files found")
 
-    filenames = ", ".join(file_entry.get("original_filename", "") for file_entry in selected_files)
+    filenames = ", ".join(_copy_filename_token(file_entry) for file_entry in selected_files)
     versions = ", ".join(file_entry.get("version", "") for file_entry in selected_files)
     uploader_segment = ", ".join(sorted(uploader_names, key=lambda item: item.lower()))
     date_str = datetime.now().strftime("%d-%m-%Y")

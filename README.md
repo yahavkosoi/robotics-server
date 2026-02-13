@@ -70,3 +70,4 @@ POST /api/admin/migrate/import-legacy
 - Multi-download is intentionally non-ZIP (individual browser downloads).
 - Copy format is:
   `fn1, fn2 [v1, v2] {AdminName - Uploader1, Uploader2} (dd-mm-yyyy)`
+  where `fn*` are derived from file descriptions without file extensions.
