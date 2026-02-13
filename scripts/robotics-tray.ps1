@@ -123,7 +123,17 @@ function Stop-ManagedProcess {
 
   try {
     if (-not $proc.HasExited) {
-      & taskkill /PID $proc.Id /T /F | Out-Null
+      & taskkill /PID $proc.Id /T /F 1>$null 2>$null
+      for ($i = 0; $i -lt 20; $i++) {
+        try {
+          if ($proc.HasExited) {
+            break
+          }
+        } catch {
+          break
+        }
+        Start-Sleep -Milliseconds 100
+      }
     }
   } catch {
     # Ignore stop failures; process may have already exited.
@@ -132,9 +142,64 @@ function Stop-ManagedProcess {
   }
 }
 
+function Wait-FileWritable {
+  param(
+    [string]$Path,
+    [int]$TimeoutMs = 3000
+  )
+
+  $deadline = (Get-Date).AddMilliseconds($TimeoutMs)
+  while ((Get-Date) -lt $deadline) {
+    try {
+      $stream = [System.IO.File]::Open($Path, [System.IO.FileMode]::OpenOrCreate, [System.IO.FileAccess]::Write, [System.IO.FileShare]::ReadWrite)
+      $stream.Close()
+      return $true
+    } catch {
+      Start-Sleep -Milliseconds 100
+    }
+  }
+
+  return $false
+}
+
 function Stop-AllServices {
   Stop-ManagedProcess -ProcessRef ([ref]$script:WebProcess) -Name 'web'
   Stop-ManagedProcess -ProcessRef ([ref]$script:BackendProcess) -Name 'backend'
+  [void](Wait-FileWritable -Path $script:WebLogPath -TimeoutMs 3000)
+  [void](Wait-FileWritable -Path $script:BackendLogPath -TimeoutMs 3000)
+}
+
+function Stop-ProcessesListeningOnPort {
+  param([int]$Port)
+
+  try {
+    $lines = netstat -ano -p tcp | Select-String -Pattern "[:\.]$Port\s+.*LISTENING\s+(\d+)$"
+  } catch {
+    return
+  }
+
+  $pids = @()
+  foreach ($line in $lines) {
+    if ($line.Matches.Count -gt 0) {
+      $pidText = $line.Matches[0].Groups[1].Value
+      if ($pidText -match '^\d+$') {
+        $listenerPid = [int]$pidText
+        if ($listenerPid -gt 0 -and $listenerPid -ne $PID) {
+          $pids += $listenerPid
+        }
+      }
+    }
+  }
+
+  $pids = $pids | Select-Object -Unique
+  foreach ($listenerPid in $pids) {
+    try {
+      Write-TrayLog "Killing listener on port $Port (PID $listenerPid)"
+      & taskkill /PID $listenerPid /T /F 1>$null 2>$null
+    } catch {
+      # Ignore races; process may already be gone.
+    }
+  }
 }
 
 function Start-BackendProcess {
@@ -245,9 +310,13 @@ function Start-AllServices {
 
   $script:IsBusy = $true
   try {
-    Stop-AllServices
-
     $ports = Get-PortConfig
+    Stop-AllServices
+    Stop-ProcessesListeningOnPort -Port $ports.web_port
+    Stop-ProcessesListeningOnPort -Port $ports.backend_port
+    [void](Wait-FileWritable -Path $script:WebLogPath -TimeoutMs 4000)
+    [void](Wait-FileWritable -Path $script:BackendLogPath -TimeoutMs 4000)
+
     $healthUrl = "http://127.0.0.1:$($ports.backend_port)/api/health"
     Write-TrayLog "Startup requested. RootDir=$script:RootDir BackendPort=$($ports.backend_port) WebPort=$($ports.web_port)"
 

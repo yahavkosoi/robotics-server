@@ -69,7 +69,7 @@ POST /api/admin/migrate/import-legacy
 - File retention default is 30 days; physical files are deleted, metadata is kept.
 - Multi-download is intentionally non-ZIP (individual browser downloads).
 - Copy format is:
-  `fn1, fn2 [v1, v2] {AdminName - Uploader1, Uploader2} (dd-mm-yyyy)`
+  `fn1, fn2 [V1, V2] {AdminName - Uploader1, Uploader2} (dd-mm-yyyy)`
   where `fn*` are derived from file descriptions without file extensions.
 - Backend/web ports are configurable in Admin Settings and are applied on next backend/Vite start.
 

@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from server.uploads import (
     _build_admin_upload_view,
     _copy_filename_token,
+    _copy_version_token,
     _effective_filename,
     admin_copy_string,
     admin_download_file,
@@ -60,6 +61,16 @@ def test_copy_filename_token_strips_extension() -> None:
 def test_copy_filename_token_falls_back_to_original_stem_when_description_blank() -> None:
     file_entry = {"description": " ", "original_filename": "part.stl"}
     assert _copy_filename_token(file_entry) == "part"
+
+
+def test_copy_version_token_prefixes_with_uppercase_v() -> None:
+    file_entry = {"version": "1"}
+    assert _copy_version_token(file_entry) == "V1"
+
+
+def test_copy_version_token_avoids_double_v_prefix() -> None:
+    file_entry = {"version": "v2"}
+    assert _copy_version_token(file_entry) == "V2"
 
 
 def test_admin_uploads_view_uses_effective_filename_for_display(tmp_path: Path) -> None:
@@ -134,7 +145,7 @@ def test_copy_string_uses_effective_filenames_in_selected_order(tmp_path: Path) 
     admin = {"username": "Admin"}
 
     result = asyncio.run(admin_copy_string(body=body, request=request, admin=admin))
-    assert result["text"].startswith("Desc One, Desc Two [1, 2] {Admin - Tom} (")
+    assert result["text"].startswith("Desc One, Desc Two [V1, V2] {Admin - Tom} (")
 
 
 def test_download_many_uses_effective_filename(tmp_path: Path) -> None:

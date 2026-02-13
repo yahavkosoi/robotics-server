@@ -173,6 +173,16 @@ def _copy_filename_token(file_entry: dict[str, Any]) -> str:
     return stem or effective
 
 
+def _copy_version_token(file_entry: dict[str, Any]) -> str:
+    raw = str(file_entry.get("version", "") or "").strip()
+    if not raw:
+        return ""
+    if raw.lower().startswith("v"):
+        suffix = raw[1:].strip()
+        return f"V{suffix}" if suffix else "V"
+    return f"V{raw}"
+
+
 def _build_admin_upload_view(store: DataStore) -> list[dict[str, Any]]:
     uploads_payload = store.read_uploads()
     files = uploads_payload.get("files", [])
@@ -451,7 +461,7 @@ async def admin_copy_string(
         raise HTTPException(status_code=404, detail="No available files found")
 
     filenames = ", ".join(_copy_filename_token(file_entry) for file_entry in selected_files)
-    versions = ", ".join(file_entry.get("version", "") for file_entry in selected_files)
+    versions = ", ".join(_copy_version_token(file_entry) for file_entry in selected_files)
     uploader_segment = ", ".join(sorted(uploader_names, key=lambda item: item.lower()))
     date_str = datetime.now().strftime("%d-%m-%Y")
 
