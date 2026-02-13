@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { api } from '../lib/api'
 import { useAdminGuard } from '../lib/useAdminGuard'
@@ -72,7 +72,6 @@ async function downloadFile(url, fallbackFilename = 'download') {
 }
 
 export function AdminUploadsPage() {
-  const navigate = useNavigate()
   const { admin, loading } = useAdminGuard()
 
   const [uploads, setUploads] = useState([])
@@ -260,11 +259,6 @@ export function AdminUploadsPage() {
     }
   }
 
-  async function logout() {
-    await api.logoutAdmin()
-    navigate('/admin/login')
-  }
-
   if (loading) {
     return <main className="page-shell"><p className="muted">Loading admin session...</p></main>
   }
@@ -280,7 +274,7 @@ export function AdminUploadsPage() {
           <div className="row-inline">
             <Button variant="outline" onClick={loadUploads}>Refresh</Button>
             <Link to="/admin/settings"><Button variant="outline">Settings</Button></Link>
-            <Button variant="outline" onClick={logout}>Logout</Button>
+            <Link to="/"><Button variant="outline">Back to Uploader</Button></Link>
           </div>
         </div>
 

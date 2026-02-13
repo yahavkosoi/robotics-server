@@ -71,3 +71,4 @@ POST /api/admin/migrate/import-legacy
 - Copy format is:
   `fn1, fn2 [v1, v2] {AdminName - Uploader1, Uploader2} (dd-mm-yyyy)`
   where `fn*` are derived from file descriptions without file extensions.
+- Backend/web ports are configurable in Admin Settings and are applied on next backend/Vite start.

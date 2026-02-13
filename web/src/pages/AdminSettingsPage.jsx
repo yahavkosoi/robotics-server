@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 
 import { api } from '../lib/api'
 import { useAdminGuard } from '../lib/useAdminGuard'
@@ -22,7 +22,6 @@ function gradeOptions(includeEmpty = false) {
 }
 
 export function AdminSettingsPage() {
-  const navigate = useNavigate()
   const { admin, loading } = useAdminGuard()
 
   const [settings, setSettings] = useState(null)
@@ -65,11 +64,6 @@ export function AdminSettingsPage() {
     }
   }
 
-  async function logout() {
-    await api.logoutAdmin()
-    navigate('/admin/login')
-  }
-
   async function saveSettings() {
     if (!settings) return
     setError('')
@@ -85,7 +79,7 @@ export function AdminSettingsPage() {
       const data = await api.updateSettings(payload)
       setSettings(data.settings)
       setAllowedExtensionsText((data.settings.allowed_extensions || []).join(', '))
-      setStatus('Settings saved.')
+      setStatus('Settings saved. Restart backend and web dev server to apply changed ports.')
     } catch (err) {
       setError(err.message)
     }
@@ -240,7 +234,6 @@ export function AdminSettingsPage() {
           </div>
           <div className="row-inline">
             <Link to="/admin/uploads"><Button variant="outline">Back to Uploads</Button></Link>
-            <Button variant="outline" onClick={logout}>Logout</Button>
           </div>
         </div>
 
@@ -266,6 +259,33 @@ export function AdminSettingsPage() {
                 min={1}
                 value={settings.max_file_size_mb}
                 onChange={(event) => setSettings((current) => ({ ...current, max_file_size_mb: Number(event.target.value) }))}
+              />
+            </label>
+          </div>
+
+          <div className="field-row">
+            <label className="field">
+              <span>Backend port</span>
+              <Input
+                type="number"
+                min={1}
+                max={65535}
+                value={settings.backend_port ?? 8080}
+                onChange={(event) =>
+                  setSettings((current) => ({ ...current, backend_port: Number(event.target.value) }))
+                }
+              />
+            </label>
+            <label className="field">
+              <span>Web port</span>
+              <Input
+                type="number"
+                min={1}
+                max={65535}
+                value={settings.web_port ?? 5173}
+                onChange={(event) =>
+                  setSettings((current) => ({ ...current, web_port: Number(event.target.value) }))
+                }
               />
             </label>
           </div>

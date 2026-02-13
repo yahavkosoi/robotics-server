@@ -18,6 +18,8 @@ class SettingsUpdateRequest(BaseModel):
     allowed_extensions: list[str] | None = None
     upload_access_mode: str | None = None
     upload_shared_password: str | None = None
+    backend_port: int | None = None
+    web_port: int | None = None
 
 
 class CreateAdminRequest(BaseModel):
@@ -98,6 +100,16 @@ async def update_settings(
 
     if body.upload_shared_password is not None:
         settings["upload_shared_password"] = body.upload_shared_password
+
+    if body.backend_port is not None:
+        if body.backend_port < 1 or body.backend_port > 65535:
+            raise HTTPException(status_code=400, detail="backend_port must be between 1 and 65535")
+        settings["backend_port"] = body.backend_port
+
+    if body.web_port is not None:
+        if body.web_port < 1 or body.web_port > 65535:
+            raise HTTPException(status_code=400, detail="web_port must be between 1 and 65535")
+        settings["web_port"] = body.web_port
 
     store.write_settings(settings)
     return {"settings": settings}

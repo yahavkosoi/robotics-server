@@ -20,6 +20,8 @@ DEFAULT_SETTINGS = {
     "allowed_extensions": [".stl", ".json"],
     "upload_access_mode": "open_lan",
     "upload_shared_password": "",
+    "backend_port": 8080,
+    "web_port": 5173,
 }
 
 DEFAULT_ADMINS = {"admins": []}
