@@ -1,5 +1,5 @@
 param(
-  [string]$RootDir = 'S:\robotics-serverV2',
+  [string]$RootDir = '',
   [int]$MaxWaitSeconds = 90
 )
 
@@ -7,6 +7,10 @@ $ErrorActionPreference = 'Stop'
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
+
+if (-not $RootDir) {
+  $RootDir = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+}
 
 $script:RootDir = $RootDir
 $script:WebDir = Join-Path $script:RootDir 'web'
@@ -129,7 +133,7 @@ function Start-BackendProcess {
 
 function Start-WebProcess {
   $installStep = 'if not exist "node_modules" (npm install)'
-  $webCmd = "cd /d ""$script:WebDir"" && $installStep && npm run dev >> ""$script:WebLogPath"" 2>&1"
+  $webCmd = "(cd /d ""$script:WebDir"" && $installStep && npm run dev) >> ""$script:WebLogPath"" 2>&1"
   return Start-Process -FilePath 'cmd.exe' -ArgumentList '/c', $webCmd -WindowStyle Hidden -PassThru
 }
 
@@ -180,6 +184,27 @@ function Wait-WebReady {
   return $false
 }
 
+function Get-LogTail {
+  param(
+    [string]$Path,
+    [int]$Lines = 20
+  )
+
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return "Log missing: $Path"
+  }
+
+  try {
+    $tail = Get-Content -LiteralPath $Path -Tail $Lines
+    if (-not $tail) {
+      return "Log exists but is empty: $Path"
+    }
+    return ($tail -join "`n")
+  } catch {
+    return "Failed reading log: $Path"
+  }
+}
+
 function Start-AllServices {
   if ($script:IsBusy) {
     return
@@ -206,7 +231,12 @@ function Start-AllServices {
 
         $script:WebProcess = Start-WebProcess
         if (-not (Wait-WebReady -WebPort $ports.web_port -TimeoutSeconds $MaxWaitSeconds -WebProc $script:WebProcess)) {
-          throw "Web did not become reachable on port $($ports.web_port)"
+          $webExit = ""
+          if ($script:WebProcess -and $script:WebProcess.HasExited) {
+            $webExit = " (web process exited with code $($script:WebProcess.ExitCode))"
+          }
+          $logTail = Get-LogTail -Path $script:WebLogPath -Lines 10
+          throw "Web did not become reachable on port $($ports.web_port)$webExit.`n$logTail"
         }
 
         Set-TrayStatusText -Text "Robotics Server (Running)"
@@ -214,16 +244,19 @@ function Start-AllServices {
         $started = $true
         break
       } catch {
+        $errText = $_.Exception.Message
         Stop-AllServices
         if ($attempt -lt 2) {
           Start-Sleep -Seconds 2
+        } else {
+          Set-TrayStatusText -Text "Robotics Server (Error)"
+          Show-TrayBalloon -Title 'Robotics Server' -Text ("Startup failed: " + $errText) -Icon Error
         }
       }
     }
 
     if (-not $started) {
       Set-TrayStatusText -Text "Robotics Server (Error)"
-      Show-TrayBalloon -Title 'Robotics Server' -Text 'Startup failed. Use Restart from tray menu after checking logs.' -Icon Error
     }
   } finally {
     $script:IsBusy = $false
