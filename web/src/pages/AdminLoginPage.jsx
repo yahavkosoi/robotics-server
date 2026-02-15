@@ -8,7 +8,7 @@ import { Input } from '../components/ui/input'
 
 export function AdminLoginPage() {
   const navigate = useNavigate()
-  const [username, setUsername] = useState('Admin')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
