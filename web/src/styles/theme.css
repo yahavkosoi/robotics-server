@@ -452,6 +452,117 @@ tbody tr:last-child td {
   font-size: 0.82rem;
 }
 
+.searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-select-trigger {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 0.4rem;
+  padding: 0.56rem 0.65rem;
+  font-size: 0.88rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+}
+
+.searchable-select-trigger:focus {
+  outline: none;
+  border-color: #404040;
+}
+
+.searchable-select-trigger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.searchable-select-caret {
+  color: var(--muted);
+  font-size: 0.64rem;
+  line-height: 1;
+}
+
+.searchable-select-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  border: 1px solid var(--line);
+  border-radius: 0.5rem;
+  background: var(--panel);
+  padding: 0.5rem;
+  display: grid;
+  gap: 0.45rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.searchable-select-search {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.86rem;
+}
+
+.searchable-select-search:focus {
+  outline: none;
+  border-color: #404040;
+}
+
+.searchable-select-options {
+  display: grid;
+  max-height: 230px;
+  overflow-y: auto;
+  border: 1px solid #202020;
+  border-radius: 0.4rem;
+  background: #101010;
+}
+
+.searchable-select-option {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #1e1e1e;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  padding: 0.52rem 0.62rem;
+  font-size: 0.86rem;
+  cursor: pointer;
+}
+
+.searchable-select-option:last-child {
+  border-bottom: 0;
+}
+
+.searchable-select-option-active {
+  background: #1b1b1b;
+}
+
+.searchable-select-option-selected {
+  color: #ffffff;
+}
+
+.searchable-select-fixed {
+  border-top: 1px solid #2a2a2a;
+  background: #161616;
+}
+
+.searchable-select-empty {
+  color: var(--muted);
+  padding: 0.56rem 0.62rem;
+  font-size: 0.82rem;
+  border-bottom: 1px solid #1e1e1e;
+}
+
 .file-picker-hidden {
   display: none;
 }

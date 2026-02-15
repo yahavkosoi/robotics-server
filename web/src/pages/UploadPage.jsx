@@ -4,6 +4,7 @@ import { api } from '../lib/api'
 import { Button } from '../components/ui/button'
 import { Card, CardDescription, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
+import { SearchableSelect } from '../components/ui/searchable-select'
 import { Select } from '../components/ui/select'
 import { Textarea } from '../components/ui/textarea'
 
@@ -107,6 +108,16 @@ export function UploadPage() {
     return selectedUploader
   }, [selectedUploader, newUploaderName])
 
+  const uploaderOptions = useMemo(
+    () =>
+      uploaders.map((uploader) => ({
+        key: uploader.id,
+        value: uploader.display_name,
+        label: uploader.display_name
+      })),
+    [uploaders]
+  )
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError('')
@@ -174,14 +185,14 @@ export function UploadPage() {
         <form className="form-grid" onSubmit={handleSubmit}>
           <label className="field">
             <span>Uploader name</span>
-            <Select value={selectedUploader} onChange={(event) => setSelectedUploader(event.target.value)}>
-              {uploaders.map((uploader) => (
-                <option key={uploader.id} value={uploader.display_name}>
-                  {uploader.display_name}
-                </option>
-              ))}
-              <option value={NEW_UPLOADER_VALUE}>+ Create new name</option>
-            </Select>
+            <SearchableSelect
+              value={selectedUploader}
+              onChange={setSelectedUploader}
+              options={uploaderOptions}
+              placeholder="Select uploader name"
+              searchPlaceholder="Search uploader names..."
+              fixedOption={{ value: NEW_UPLOADER_VALUE, label: '+ Create new name' }}
+            />
           </label>
 
           {selectedUploader === NEW_UPLOADER_VALUE ? (
