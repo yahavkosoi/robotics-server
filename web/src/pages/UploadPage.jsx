@@ -16,6 +16,7 @@ const createId = () =>
 
 export function UploadPage() {
   const [uploaders, setUploaders] = useState([])
+  const [allowedExtensions, setAllowedExtensions] = useState(['.json', '.stl'])
   const [selectedUploader, setSelectedUploader] = useState('')
   const [newUploaderName, setNewUploaderName] = useState('')
   const [newUploaderGrade, setNewUploaderGrade] = useState('')
@@ -34,6 +35,11 @@ export function UploadPage() {
     try {
       const data = await api.getUploaders()
       const rows = data.uploaders || []
+      const allowed = Array.isArray(data.allowed_extensions) ? data.allowed_extensions : []
+      const normalizedAllowed = allowed
+        .map((value) => String(value || '').trim().toLowerCase())
+        .filter(Boolean)
+      setAllowedExtensions(normalizedAllowed)
       setUploaders(rows)
       if (rows.length > 0) {
         setSelectedUploader((current) => current || rows[0].display_name)
@@ -48,8 +54,9 @@ export function UploadPage() {
   }
 
   function isAllowedFile(file) {
+    if (!allowedExtensions.length) return true
     const lower = file.name.toLowerCase()
-    return lower.endsWith('.json') || lower.endsWith('.stl')
+    return allowedExtensions.some((ext) => lower.endsWith(ext))
   }
 
   function appendFiles(nextFiles) {
@@ -59,7 +66,8 @@ export function UploadPage() {
     const valid = nextFiles.filter((file) => isAllowedFile(file))
 
     if (invalid.length) {
-      setError(`Only .json and .stl are allowed. Ignored: ${invalid.map((f) => f.name).join(', ')}`)
+      const allowedLabel = allowedExtensions.length ? allowedExtensions.join(', ') : 'any extension'
+      setError(`Only ${allowedLabel} are allowed. Ignored: ${invalid.map((f) => f.name).join(', ')}`)
     } else {
       setError('')
     }
@@ -117,6 +125,13 @@ export function UploadPage() {
       })),
     [uploaders]
   )
+
+  const allowedExtensionsText = useMemo(() => {
+    if (!allowedExtensions.length) {
+      return 'any extension'
+    }
+    return allowedExtensions.join(', ')
+  }, [allowedExtensions])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -216,7 +231,7 @@ export function UploadPage() {
           ) : null}
 
           <div className="field">
-            <span>Files (.json, .stl only)</span>
+            <span>Files ({allowedExtensionsText})</span>
             <div
               className={`dropzone ${isDragActive ? 'dropzone-active' : ''}`}
               onDragOver={(event) => {
@@ -231,7 +246,7 @@ export function UploadPage() {
                 className="file-picker-hidden"
                 type="file"
                 multiple
-                accept=".json,.stl"
+                accept={allowedExtensions.join(',')}
                 onChange={handleFilesChange}
               />
               <p className="dropzone-title">Drag and drop files here</p>

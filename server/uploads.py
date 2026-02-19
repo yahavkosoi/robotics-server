@@ -144,6 +144,10 @@ def _allowed_extension(filename: str, settings: dict[str, Any]) -> bool:
     return ext in allowed
 
 
+def _public_allowed_extensions(settings: dict[str, Any]) -> list[str]:
+    return [ext.lower().strip() for ext in settings.get("allowed_extensions", []) if ext.strip()]
+
+
 def _safe_storage_name(filename: str) -> str:
     basename = Path(filename).name or "file"
     cleaned = SAFE_NAME_PATTERN.sub("_", basename)
@@ -234,9 +238,10 @@ def _build_admin_upload_view(store: DataStore) -> list[dict[str, Any]]:
 async def list_uploaders(request: Request) -> dict[str, Any]:
     store: DataStore = request.app.state.store
     payload = store.read_uploaders()
+    settings = store.read_settings()
     uploaders = [u for u in payload.get("uploaders", []) if u.get("is_active_for_upload", True)]
     uploaders.sort(key=lambda item: item.get("display_name", "").lower())
-    return {"uploaders": uploaders}
+    return {"uploaders": uploaders, "allowed_extensions": _public_allowed_extensions(settings)}
 
 
 @router.post("/uploaders")
